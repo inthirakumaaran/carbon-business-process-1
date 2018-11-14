@@ -128,6 +128,10 @@ public class BPELServerConfiguration {
     private long odeHeartbeatDBUpdateSchedulerInterval = 20000;
     private int odeSecondaryStaleThresholdFactor = 4;
 
+    private boolean odeSecondaryStaleNodeDetectionEnable = false;
+    private long odeHeartbeatDBUpdateSchedulerInterval = 20000;
+    private int odeSecondaryStaleThresholdFactor = 4;
+
     //Maximum length of a instance variable in instance view.
     private int instanceViewVariableLength = BPELConstants.DEFAULT_INSTANCE_VIEW_VARIABLE_LENGTH;
     private int transactionManagerTimeout = -1;
