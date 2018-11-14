@@ -16,11 +16,7 @@
 
 package org.wso2.carbon.bpel.core.ode.integration;
 
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.Member;
-import com.hazelcast.core.MemberAttributeEvent;
-import com.hazelcast.core.MembershipEvent;
-import com.hazelcast.core.MembershipListener;
+import com.hazelcast.core.*;
 import org.apache.commons.httpclient.HttpConnectionManager;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
@@ -34,20 +30,13 @@ import org.apache.ode.bpel.engine.CountLRUDehydrationPolicy;
 import org.apache.ode.bpel.engine.cron.CronScheduler;
 import org.apache.ode.bpel.extension.ExtensionBundleRuntime;
 import org.apache.ode.bpel.extension.ExtensionCorrelationFilter;
-import org.apache.ode.bpel.iapi.BpelEngineException;
-import org.apache.ode.bpel.iapi.BpelEventListener;
-import org.apache.ode.bpel.iapi.EndpointReferenceContext;
-import org.apache.ode.bpel.iapi.ProcessConf;
-import org.apache.ode.bpel.iapi.ProcessStoreEvent;
-import org.apache.ode.bpel.iapi.ProcessStoreListener;
-import org.apache.ode.bpel.iapi.Scheduler;
+import org.apache.ode.bpel.iapi.*;
 import org.apache.ode.bpel.intercept.MessageExchangeInterceptor;
 import org.apache.ode.bpel.memdao.BpelDAOConnectionFactoryImpl;
 import org.apache.ode.il.dbutil.Database;
 import org.apache.ode.scheduler.simple.JdbcDelegate;
 import org.apache.ode.scheduler.simple.ODECluster;
 import org.apache.ode.scheduler.simple.SimpleScheduler;
-import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.bpel.core.BPELConstants;
 import org.wso2.carbon.bpel.core.internal.BPELServerHolder;
 import org.wso2.carbon.bpel.core.internal.BPELServiceComponent;
@@ -55,11 +44,7 @@ import org.wso2.carbon.bpel.core.ode.integration.config.BPELServerConfiguration;
 import org.wso2.carbon.bpel.core.ode.integration.jmx.Instance;
 import org.wso2.carbon.bpel.core.ode.integration.jmx.InstanceStatusMonitor;
 import org.wso2.carbon.bpel.core.ode.integration.jmx.Processes;
-import org.wso2.carbon.bpel.core.ode.integration.store.BPELDeploymentContext;
-import org.wso2.carbon.bpel.core.ode.integration.store.MultiTenantProcessStore;
-import org.wso2.carbon.bpel.core.ode.integration.store.ProcessConfigurationImpl;
-import org.wso2.carbon.bpel.core.ode.integration.store.ProcessStoreImpl;
-import org.wso2.carbon.bpel.core.ode.integration.store.TenantProcessStoreImpl;
+import org.wso2.carbon.bpel.core.ode.integration.store.*;
 import org.wso2.carbon.bpel.core.ode.integration.utils.BPELDatabaseCreator;
 import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.config.RegistryContext;
@@ -67,6 +52,11 @@ import org.wso2.carbon.registry.core.exceptions.RegistryException;
 import org.wso2.carbon.utils.CarbonUtils;
 import org.wso2.carbon.utils.MBeanRegistrar;
 
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.NotCompliantMBeanException;
+import javax.sql.DataSource;
+import javax.transaction.TransactionManager;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -75,16 +65,11 @@ import java.util.Observer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.MBeanRegistrationException;
-import javax.management.NotCompliantMBeanException;
-import javax.sql.DataSource;
-import javax.transaction.TransactionManager;
 
 /**
  * BPELServer implementation. All the ODE BPEL Engine initialization is handled here.
  */
-public final class BPELServerImpl implements BPELServer, Observer {
+public final class BPELServerImpl implements BPELServer , Observer{
     private static Log log = LogFactory.getLog(BPELServerImpl.class);
 
     /* ODE BPEL Server instance*/
@@ -197,9 +182,9 @@ public final class BPELServerImpl implements BPELServer, Observer {
             throw new Exception(errMsg, e);
         }
 
-        if (bpelServerConfiguration.getUseDistributedLock() && isAxis2ClusteringEnabled()) {
+        if(bpelServerConfiguration.getUseDistributedLock() && isAxis2ClusteringEnabled()) {
             BPELServerHolder.getInstance().addObserver(this);
-            if (log.isDebugEnabled()) {
+            if(log.isDebugEnabled()) {
                 log.debug("Clustering Enabled, Registering Observer for HazelCast service");
             }
         }
@@ -389,9 +374,9 @@ public final class BPELServerImpl implements BPELServer, Observer {
             Class txFactoryClass = this.getClass().getClassLoader().loadClass(txFactoryName);
             Object txFactory = txFactoryClass.newInstance();
             int transactionTimeout = bpelServerConfiguration.getTransactionManagerTimeout();
-            if (transactionTimeout > -1) {
+            if ( transactionTimeout > -1) {
                 transactionManager = (TransactionManager) txFactoryClass.
-                        getMethod("getTransactionManager", int.class).invoke(txFactory, transactionTimeout);
+                        getMethod("getTransactionManager", int.class).invoke(txFactory,transactionTimeout);
             } else {
                 transactionManager = (TransactionManager) txFactoryClass.
                         getMethod("getTransactionManager", (Class[]) null).invoke(txFactory);
@@ -776,13 +761,14 @@ public final class BPELServerImpl implements BPELServer, Observer {
                     // register correlation filter (BPEL server)
                     odeBpelServer.registerExtensionCorrelationFilter(filterRT);
                 } catch (Exception e) {
-                    log.warn("Couldn't register the extension correlation filter " + filter + ", the class couldn't " +
-                            "be " +
+                    log.warn("Couldn't register the extension correlation filter " + filter + ", the class couldn't be " +
                             "loaded properly.");
                 }
             }
         }
     }
+
+
 
 
     private class ProcessStoreListenerImpl implements ProcessStoreListener {
@@ -823,7 +809,7 @@ public final class BPELServerImpl implements BPELServer, Observer {
 
                             BPELDeploymentContext deploymentContext =
                                     new BPELDeploymentContext(tenantID,
-                                            bpelRepoRoot, bpelArchive, pConf.getVersion());
+                                    bpelRepoRoot, bpelArchive, pConf.getVersion());
                             deploymentContext.setDeploymentFailureCause(failureCause);
                             deploymentContext.setStackTrace(ex);
                             deploymentContext.setFailed(true);
@@ -914,8 +900,7 @@ public final class BPELServerImpl implements BPELServer, Observer {
     private boolean isManagerNode() {
         try {
             //get config registry of super tenant
-            Registry configRegistry = BPELServiceComponent.getRegistryService().getConfigSystemRegistry(
-                    MultitenantConstants.SUPER_TENANT_ID);
+            Registry configRegistry = BPELServiceComponent.getRegistryService().getConfigSystemRegistry(-1234);
             RegistryContext registryContext = configRegistry.getRegistryContext();
             if (registryContext != null) {
                 return !registryContext.isReadOnly();
@@ -949,20 +934,18 @@ public final class BPELServerImpl implements BPELServer, Observer {
     }
 
 
-    public void registerMBeans() throws Exception, MBeanRegistrationException, InstanceAlreadyExistsException,
-            NotCompliantMBeanException {
+
+    public void registerMBeans() throws Exception, MBeanRegistrationException, InstanceAlreadyExistsException, NotCompliantMBeanException {
         log.info("Registering MBeans");
-        Processes processMBean = new Processes();
-        Instance instanceMBean = new Instance();
-        InstanceStatusMonitor statusMonitorMBean = InstanceStatusMonitor.getInstanceStatusMonitor();
-//        ObjectName instanceStatusObjectName= new ObjectName("org.wso2.carbon.bpel.core.ode.integration
-// .jmx:type=InstanceStatusMonitor");
+        Processes processMBean= new Processes();
+        Instance instanceMBean= new Instance();
+        InstanceStatusMonitor statusMonitorMBean= InstanceStatusMonitor.getInstanceStatusMonitor();
+//        ObjectName instanceStatusObjectName= new ObjectName("org.wso2.carbon.bpel.core.ode.integration.jmx:type=InstanceStatusMonitor");
 //        ObjectName processObjectName= new ObjectName("org.wso2.carbon.bpel.core.ode.integration.jmx:type=Process");
 //        ObjectName instanceObjectName= new ObjectName("org.wso2.carbon.bpel.core.ode.integration.jmx:type=Instance");
-        MBeanRegistrar.registerMBean(processMBean, "org.wso2.carbon.bpel.core.ode.integration.jmx:type=Process");
+        MBeanRegistrar.registerMBean(processMBean,"org.wso2.carbon.bpel.core.ode.integration.jmx:type=Process");
         MBeanRegistrar.registerMBean(instanceMBean, "org.wso2.carbon.bpel.core.ode.integration.jmx:type=Instance");
-        MBeanRegistrar.registerMBean(statusMonitorMBean, "org.wso2.carbon.bpel.core.ode.integration" +
-                ".jmx:type=InstanceStatusMonitor");
+        MBeanRegistrar.registerMBean(statusMonitorMBean, "org.wso2.carbon.bpel.core.ode.integration.jmx:type=InstanceStatusMonitor");
 
 
     }
@@ -971,7 +954,7 @@ public final class BPELServerImpl implements BPELServer, Observer {
         return scheduler;
     }
 
-    private boolean isAxis2ClusteringEnabled() {
+    private boolean  isAxis2ClusteringEnabled() {
 //        return BPELServerHolder.getInstance().getConfigCtxService().
 //                getServerConfigContext().getAxisConfiguration().getClusteringAgent() != null;
         return true;
@@ -979,16 +962,16 @@ public final class BPELServerImpl implements BPELServer, Observer {
 
     public void update(Observable o, Object arg) {
         HazelcastInstance hazelcastInstance = BPELServiceComponent.getHazelcastInstance();
-        if (hazelcastInstance != null) {
+        if(hazelcastInstance != null) {
             String name = hazelcastInstance.getName();
             // Set hazelcast instance name as system property
             System.setProperty("WSO2_HZ_INSTANCE_NAME", name);
-            if (bpelServerConfiguration.getUseInstanceStateCache()) {
+            if(bpelServerConfiguration.getUseInstanceStateCache()) {
                 // set use instance state cache property
                 System.setProperty("WSO2_USE_STATE_CACHE", "true");
             }
             odeBpelServer.setHazelcastInstance(hazelcastInstance);
-            if (log.isInfoEnabled()) {
+            if(log.isInfoEnabled()) {
                 log.info("Configured HazelCast instance for BPS cluster");
             }
             // Registering this node in BPS cluster BPS-675.
@@ -1031,7 +1014,6 @@ public final class BPELServerImpl implements BPELServer, Observer {
 
         /**
          * Check whether current node is the leader or not.
-         *
          * @return boolean
          */
         @Override
@@ -1039,14 +1021,10 @@ public final class BPELServerImpl implements BPELServer, Observer {
             HazelcastInstance hazelcastInstance = BPELServiceComponent.getHazelcastInstance();
             Member leader = hazelcastInstance.getCluster().getMembers().iterator().next();
             if (leader.localMember()) {
-                if (log.isDebugEnabled()) {
-                    log.debug("ODEClusterImpl#isLeader: true");
-                }
+                log.debug("ODEClusterImpl#isLeader: true");
                 return true;
             }
-            if (log.isDebugEnabled()) {
-                log.debug("#ODEClusterImpl#isLeader: false");
-            }
+            log.debug("#ODEClusterImpl#isLeader: false");
             return false;
         }
 
@@ -1091,7 +1069,6 @@ public final class BPELServerImpl implements BPELServer, Observer {
 
         /**
          * returns Current BPS Nodes in the cluster.
-         *
          * @return ODE Node list
          */
         @Override
@@ -1112,58 +1089,35 @@ public final class BPELServerImpl implements BPELServer, Observer {
     /**
      * MemberShipListener class is added to fix BPS-675
      */
-    static class MemberShipListener implements MembershipListener {
+    class MemberShipListener implements MembershipListener{
 
         @Override
         public void memberAdded(MembershipEvent membershipEvent) {
             // Noting to do here.
-            if (log.isDebugEnabled()) {
-                log.debug("New member added event triggered: " + membershipEvent);
-            }
             log.info("ODEClusterImpl#memberAdded: Member added to BPS Cluster: " + membershipEvent.getMember());
         }
 
         @Override
         public void memberRemoved(MembershipEvent membershipEvent) {
-            if (log.isDebugEnabled()) {
-                log.debug("Member removed event triggered: " + membershipEvent);
-            }
-
             log.info("ODEClusterImpl#memberRemoved: Member removed from BPS Cluster: " + membershipEvent.getMember());
             HazelcastInstance hazelcastInstance = BPELServiceComponent.getHazelcastInstance();
             Member leader = hazelcastInstance.getCluster().getMembers().iterator().next();
-
-            if (log.isDebugEnabled()) {
-                StringBuilder nodeListBuilder = new StringBuilder();
-                nodeListBuilder.append("[");
-                for (Member member : hazelcastInstance.getCluster().getMembers()) {
-                    nodeListBuilder.append(",").append(getHazelCastNodeID(member));
-                }
-                nodeListBuilder.append("]");
-                log.debug("BPS Cluster members: " + nodeListBuilder.toString());
-                log.debug("Leader node of the BPS cluster: " + getHazelCastNodeID(leader));
-            }
-
             // Allow Leader to update distributed map.
             if (leader.localMember()) {
                 String leftMemberID = getHazelCastNodeID(membershipEvent.getMember());
                 hazelcastInstance.getMap(BPELConstants.BPS_CLUSTER_NODE_MAP).remove(leftMemberID);
-
-                if (log.isDebugEnabled()) {
-                    log.debug("Removed the member: " + leftMemberID + " from the distributed map (WSO2_BPS_NODE_ID_MAP)");
-                }
                 log.info("Member " + membershipEvent.getMember() + "[" + leftMemberID + "] removed from WSO2_BPS_NODE_ID_MAP");
             }
         }
 
-        @Override
-        public void memberAttributeChanged(MemberAttributeEvent memberAttributeEvent) {
-            // Noting to do here.
+	    @Override
+	    public void memberAttributeChanged(MemberAttributeEvent memberAttributeEvent) {
+		    // Noting to do here.
             if (log.isDebugEnabled()) {
                 log.debug("ODEClusterImpl#memberAttributeChanged Member attribute change from BPS Cluster: " +
                         memberAttributeEvent.getMember());
             }
-        }
+	    }
     }
 
 }
